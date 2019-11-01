@@ -14,7 +14,7 @@ namespace SwiftKick.DapperDemos
             var sqlConnectionString = "Server=.;Database=GriffCoUnlimited;Trusted_Connection=True;";
 
             // DEMO 1: QueryAsync<> 
-            //await DemoWithQueryAsync(sqlConnectionString);
+            await DemoWithQueryAsync(sqlConnectionString);
 
             // DEMO 2: QueryAsync<> with Parameters
             //await DemoWithQueryAsyncWithParameters(sqlConnectionString);
@@ -35,7 +35,7 @@ namespace SwiftKick.DapperDemos
             //await DemoTransactions(sqlConnectionString);
 
             // DEMO 7: Dynamic results
-            await DemoDynamicResults(sqlConnectionString);
+            //await DemoDynamicResults(sqlConnectionString);
 
             // DEMO 8: Mapping 
             // DEMO 9: Multi-mapping
