@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 
@@ -14,11 +15,11 @@ namespace SwiftKick.DapperDemos
             var sqlConnectionString = "Server=.;Database=GriffCoUnlimited;Trusted_Connection=True;";
 
             // DEMO 1: QueryAsync<> 
-            await DemoWithQueryAsync(sqlConnectionString);
+            //await DemoWithQueryAsync(sqlConnectionString);
 
             // DEMO 2: QueryAsync<> with Parameters
             //await DemoWithQueryAsyncWithParameters(sqlConnectionString);
-            //await DemoWithQueryAsyncWithDynamicParameters(sqlConnectionString);
+            await DemoWithQueryAsyncWithDynamicParameters(sqlConnectionString);
 
             // DEMO 3: QueryFirst / QueryFirstOrDefault
             //await DemoWithQueryFirst(sqlConnectionString);
@@ -63,7 +64,7 @@ namespace SwiftKick.DapperDemos
         {
             Console.WriteLine($"{result.FirstName}\t\t{result.LastName}\t\t{result.DateOfBirth}");
         }
-#endregion
+        #endregion
 
         private static async Task DemoWithQueryAsync(string sqlConnectionString)
         {
@@ -79,6 +80,23 @@ namespace SwiftKick.DapperDemos
                               ,[ZipCode]
                           FROM [dbo].[MassiveUserList]";
             var result = await connection.QueryAsync<User>(sql);
+            WriteList(result);
+        }
+
+        private static void DemoWithQueryAsyncNotBuffered(string sqlConnectionString)
+        {
+            using var connection = new SqlConnection(sqlConnectionString);
+            var sql = @"SELECT [Id]
+                              ,[FirstName]
+                              ,[LastName]
+                              ,[PhoneNumber]
+                              ,[UserName]
+                              ,[DateOfBirth]
+                              ,[City]
+                              ,[State]
+                              ,[ZipCode]
+                          FROM [dbo].[MassiveUserList]";
+            var result = connection.Query<User>(sql, buffered: false);
             WriteList(result);
         }
 
@@ -104,6 +122,10 @@ namespace SwiftKick.DapperDemos
 
         private static async Task DemoWithQueryAsyncWithDynamicParameters(string sqlConnectionString)
         {
+            // criteria
+            var searchFirstName = "Harry";
+            var searchLastName = "Pennington";
+
             await using var connection = new SqlConnection(sqlConnectionString);
             var sql = @"SELECT [Id]
                               ,[FirstName]
@@ -114,11 +136,25 @@ namespace SwiftKick.DapperDemos
                               ,[City]
                               ,[State]
                               ,[ZipCode]
-                          FROM [dbo].[MassiveUserList]
-                          WHERE DateOfBirth > @dateOfBirth";
+                          FROM [dbo].[MassiveUserList] ";
 
+            var whereClauses = new List<string>();
             var dynamicParam = new DynamicParameters();
-            dynamicParam.Add("dateOfBirth", new DateTime(2005, 10, 01));
+
+            if (!string.IsNullOrWhiteSpace(searchFirstName))
+            {
+                whereClauses.Add("FirstName = @firstName");
+                dynamicParam.Add("firstName", searchFirstName);
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchLastName))
+            {
+                whereClauses.Add("LastName = @lastName");
+                dynamicParam.Add("lastName", searchLastName);
+            }
+
+            if (whereClauses.Any())
+                sql += " WHERE " + string.Join(" AND ", whereClauses);
 
             var result = await connection.QueryAsync<User>(sql, dynamicParam);
 
@@ -162,11 +198,16 @@ namespace SwiftKick.DapperDemos
 
             var newUser = new User()
             {
-                FirstName = "Jim", LastName = "Bob", City = "Chesapeake", State = "Virginia", ZipCode = "23320",
+                FirstName = "Jim",
+                LastName = "Bob",
+                City = "Chesapeake",
+                State = "Virginia",
+                ZipCode = "23320",
                 DateOfBirth = DateTime.Parse("1999-01-01"),
-                PhoneNumber = "757-867-5309", UserName = "COMPUTER/JimBob"
+                PhoneNumber = "757-867-5309",
+                UserName = "COMPUTER/JimBob"
             };
-        
+
             var result = await connection.ExecuteAsync(sql, newUser);
         }
 
@@ -178,7 +219,7 @@ namespace SwiftKick.DapperDemos
                         WHERE FirstName = @firstName";
 
             var result = await connection.ExecuteAsync(sql,
-                new {dateOfBirth = DateTime.Parse("2009-01-01"), firstName = "Jim"});
+                new { dateOfBirth = DateTime.Parse("2009-01-01"), firstName = "Jim" });
         }
 
         private static async Task DemoExecuteAsyncWithDelete(string sqlConnectionString)
@@ -187,7 +228,7 @@ namespace SwiftKick.DapperDemos
             var sql = @"DELETE FROM [dbo].[MassiveUserList]                        
                         WHERE LastName = @lastName";
 
-            var result = await connection.ExecuteAsync(sql, new {lastName = "Bob"});
+            var result = await connection.ExecuteAsync(sql, new { lastName = "Bob" });
         }
 
 
